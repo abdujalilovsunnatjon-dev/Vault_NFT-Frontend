@@ -59,11 +59,13 @@ export const initTelegram = async (): Promise<{
     username: userRaw?.username,
     photoUrl: userRaw?.photoUrl,
   }
-
-  return {
-    user,
-    initData: initData ?? null,
-  }
+  
+  const rawInitData = (window as any).Telegram.WebApp.initData
+  
+return {
+  user,
+  initData: rawInitData,
+}
 }
 
 export const requestPhoneNumber = () => {
