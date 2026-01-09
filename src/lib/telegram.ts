@@ -39,6 +39,8 @@ export const initTelegram = async (): Promise<{
   // retrieveLaunchParams возвращает initData (parsed) и другие поля
   const { initData } = retrieveLaunchParams()
   const userRaw = initData?.user
+  console.log("TG INIT DATA:", initData)
+console.log("TG USER RAW:", userRaw)
 
   // Initialize Telegram WebApp (safely)
   const tg = (window as any).Telegram.WebApp
