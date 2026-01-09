@@ -9,6 +9,17 @@ import Profile from './pages/Profile'
 import Wallet from './pages/Wallet'
 import SettingsModal from './components/SettingsModal'
 import { useState } from 'react'
+import { initTelegram } from "@/lib/telegram"
+
+useEffect(() => {
+  initTelegram()
+    .then(res => {
+      console.log("TG USER FINAL:", res.user)
+    })
+    .catch(err => {
+      console.log("TG INIT ERROR:", err.message)
+    })
+}, [])
 
 function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
