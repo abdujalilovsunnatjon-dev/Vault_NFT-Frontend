@@ -1,4 +1,5 @@
 import { retrieveLaunchParams } from '@telegram-apps/sdk'
+  import { api } from "./api";
 
 /**
  * Минимальные локальные типы, чтобы TS был спокоен.
@@ -35,6 +36,10 @@ export const initTelegram = async (): Promise<{
   if (!isTMA()) {
     throw new Error('Not in Telegram Mini App')
   }
+  
+  await api.post("/auth/telegram", {
+  initData,
+});
 
   // retrieveLaunchParams возвращает initData (parsed) и другие поля
   const { initData } = retrieveLaunchParams()
