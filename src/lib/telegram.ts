@@ -1,10 +1,6 @@
 import { retrieveLaunchParams } from '@telegram-apps/sdk'
-  import { api } from "./api";
+import { api } from './api' // Убедись, что файл src/lib/api.ts экспортирует `api`
 
-/**
- * Минимальные локальные типы, чтобы TS был спокоен.
- * SDK может экспортировать более точные типы, но эти простые подойдут.
- */
 type InitDataParsed = {
   user?: {
     id?: number
@@ -16,14 +12,9 @@ type InitDataParsed = {
   [k: string]: any
 }
 
-export const isTMA = (): boolean => {
-  // Проверяем наличие Telegram WebApp в window
-  return typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp
-}
+export const isTMA = (): boolean =>
+  typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp
 
-/**
- * Инициализация — возвращаем нормализованный user и сам initData (объект или null).
- */
 export const initTelegram = async (): Promise<{
   user: {
     id: number
@@ -31,64 +22,48 @@ export const initTelegram = async (): Promise<{
     lastName?: string
     username?: string
     photoUrl?: string
-  }; initData: InitDataParsed | null
+  }
+  initData: InitDataParsed | null
 }> => {
   if (!isTMA()) {
     throw new Error('Not in Telegram Mini App')
   }
-  
-  await api.post("/auth/telegram", {
-  initData,
-});
 
-  // retrieveLaunchParams возвращает initData (parsed) и другие поля
+  // получаем initData из SDK
   const { initData } = retrieveLaunchParams()
   const userRaw = initData?.user
-  console.log("TG INIT DATA:", initData)
-console.log("TG USER RAW:", userRaw)
 
-  // Initialize Telegram WebApp (safely)
-  const tg = (window as any).Telegram.WebApp
+  // отправляем initData на бекенд (если нужно)
   try {
-    tg.expand?.()
-    tg.enableClosingConfirmation?.()
-    if (tg.setHeaderColor) tg.setHeaderColor('#0A0A0A')
-    if (tg.setBackgroundColor) tg.setBackgroundColor('#0A0A0A')
+    if (initData) {
+      // не блокируем UI — ждём, но в try/catch
+      await api.post('/auth/telegram', { initData })
+    } else {
+      console.warn('No initData received from Telegram')
+    }
+  } catch (err) {
+    console.error('Failed to POST initData to backend:', err)
+    // не кидаем ошибку дальше — сайт должен работать даже без бекенда
+  }
+
+  // Initialize Telegram WebApp UI safely
+  const tg = (window as any).Telegram?.WebApp
+  try {
+    tg?.expand?.()
+    tg?.enableClosingConfirmation?.()
+    if (tg?.setHeaderColor) tg.setHeaderColor('#0A0A0A')
+    if (tg?.setBackgroundColor) tg.setBackgroundColor('#0A0A0A')
   } catch (e) {
-    // не критично — просто лог
     console.warn('Telegram WebApp UI initialization failed', e)
   }
 
   const user = {
     id: userRaw?.id ?? 0,
-    firstName: userRaw?.firstName ?? '',
-    lastName: userRaw?.lastName,
+    firstName: userRaw?.first_name ?? '',
+    lastName: userRaw?.last_name,
     username: userRaw?.username,
-    photoUrl: userRaw?.photoUrl,
+    photoUrl: userRaw?.photo_url,
   }
-  
-  const rawInitData = (window as any).Telegram.WebApp.initData
-  
-return {
-  user,
-  initData: rawInitData,
-}
-}
 
-export const requestPhoneNumber = () => {
-  if (!isTMA()) return Promise.reject('Not in Telegram')
-  return new Promise((resolve, reject) => {
-    const tg = (window as any).Telegram.WebApp
-    if (!tg.requestContact) {
-      return reject('Telegram WebApp requestContact not available')
-    }
-
-    tg.requestContact((success: boolean) => {
-      if (success) {
-        resolve(tg.sendData(JSON.stringify({ type: 'contact_requested' })))
-      } else {
-        reject('Permission denied')
-      }
-    })
-  })
+  return { user, initData: initData ?? null }
 }
